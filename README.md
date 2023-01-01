@@ -1,2 +1,2 @@
 # TerminalCube
-Cube rendering in the terminal
+Rotating cube rendering in the terminal
