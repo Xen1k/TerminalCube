@@ -2,7 +2,7 @@ import numpy as np
 import os
 import time
 from abc import ABC, abstractmethod
-from copy import copy, deepcopy
+from copy import copy
 from math import cos, sin
 
 def clear(full_clear = False): os.system('cls') if full_clear else print("\033[H\033[J", end='')
@@ -83,43 +83,35 @@ class Triangle(Drawable):
         
 class Polygon(Drawable):
     def __init__(self, points):
-        self.triangles = []
         if len(points) < 3:
-            raise Exception("Invalid points")
-        for i in range(len(points) - 2):
-            self.triangles.append(Triangle(points[0], points[i+1], points[i+2]))
+            raise Exception("Invalid points, a polygon must have at least 3 vertices")
+        
+        self.points = points
+        self.triangles = []
+        self._generate_triangles()
+
+    def _generate_triangles(self):
+        for i in range(len(self.points) - 2):
+            self.triangles.append(Triangle(self.points[0], self.points[i+1], self.points[i+2]))
 
     def update_drawcall_matrix(self):
-        for trinagle in self.triangles:
-           trinagle.update_drawcall_matrix()
+        for triangle in self.triangles:
+            triangle.update_drawcall_matrix()
 
     def set_all_points(self, points):
-        point_number = 0
-        for new_point in points:
-            self.set_point(point_number, new_point)
-            point_number += 1
-    
-    def get_points(self):
-        points = []
-        points.append(self.triangles[0].get_point(0))
-        for triangle in self.triangles:
-            points.append(triangle.get_point(1))
-        points.append(self.triangles[-1].get_point(2))
-        return points
+        self.points = points
+        self.triangles = []
+        self._generate_triangles()
 
     def set_point(self, point_number, new_point):
-        if point_number > len(self.triangles) + 2:
-            raise Exception("Invalid point!")
-        if point_number == 0:
-            for trinagle in self.triangles:
-                trinagle.set_point(0, new_point)
-        elif point_number == 1:
-            self.triangles[0].set_point(1, new_point)
-        elif point_number == len(self.triangles) + 1:
-            self.triangles[-1].set_point(2, new_point)
-        else:
-            self.triangles[point_number - 2].set_point(2, new_point)
-            self.triangles[point_number - 1].set_point(1, new_point)
+        if point_number >= len(self.points):
+            raise Exception("Invalid point, point number is out of range")
+        self.points[point_number] = new_point
+        self.triangles = []
+        self._generate_triangles()
+
+    def get_points(self):
+        return self.points
 
 class Mesh(Drawable):
     def __init__(self, mesh_points):
@@ -139,31 +131,21 @@ class Mesh(Drawable):
 
 def rotate(angle, axis, points):
     rotation_matrices = {
-        'x': lambda angle: np.array([[1, 0, 0], [0, cos(angle), -sin(angle)], [0, sin(angle), cos(angle)]]),
-        'y': lambda angle: np.array([[cos(angle), 0, sin(angle)], [0, 1, 0], [-sin(angle), 0, cos(angle)]]),
-        'z': lambda angle: np.array([[cos(angle), -sin(angle), 0], [sin(angle), cos(angle), 0], [0, 0, 1]])
+        'x': np.array([[1, 0, 0], [0, cos(angle), -sin(angle)], [0, sin(angle), cos(angle)]]),
+        'y': np.array([[cos(angle), 0, sin(angle)], [0, 1, 0], [-sin(angle), 0, cos(angle)]]),
+        'z': np.array([[cos(angle), -sin(angle), 0], [sin(angle), cos(angle), 0], [0, 0, 1]])
     }
-    rotation_matrix = rotation_matrices[axis](angle)
-    rotated_points = []
-    for point in points:
-        rotated_points.append(np.array(point).dot(rotation_matrix).tolist())
-    return rotated_points
+    rotation_matrix = rotation_matrices[axis]
+    return [np.array(point).dot(rotation_matrix).tolist() for point in points]
 
 def translate(translate_vector, points):
-    modified_translate_vector = copy(translate_vector)
+    modified_translate_vector = translate_vector.copy()
     modified_translate_vector.append(1)
     translation_matrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], modified_translate_vector])
-    translated_points = []
-    for point in deepcopy(points):
-        point.append(1)
-        translated_points.append(np.array(point).dot(translation_matrix).tolist()[:-1])
-    return translated_points
+    return [np.array(point + [1]).dot(translation_matrix).tolist()[:-1] for point in points]
 
 def transform_multi(transform_function, points_list):
-    transformed_points_list = []
-    for points in points_list:
-        transformed_points_list.append(transform_function(points))
-    return transformed_points_list
+    return [transform_function(points) for points in points_list]
 
 
 line_length = 35
