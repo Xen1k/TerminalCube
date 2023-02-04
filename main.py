@@ -55,11 +55,11 @@ class Line(Drawable):
         min_y = int(min(self.point1[1], self.point2[1]))
         max_y = int(max(self.point1[1], self.point2[1]))
         clear_render_z_range = 4
-        for i in range(min_x, max_x):
+        for i in range(min_x + 1, max_x):
             y_coord = int(self.get_y_point_on_line(i))
             if y_coord < self.MAX_DRAWABLE_SIZE and y_coord >= 0:
                 Drawable.drawcall_matrix[y_coord][i] = 1 if self.get_z_point_on_line(i) < clear_render_z_range else 2
-        for i in range(min_y, max_y):
+        for i in range(min_y + 1, max_y):
             x_coord = int(self.get_x_point_on_line(i))
             if x_coord < self.MAX_DRAWABLE_SIZE and x_coord >= 0:
                 Drawable.drawcall_matrix[i][x_coord] = 1 if self.get_z_point_on_line(x_coord) < clear_render_z_range else 2
